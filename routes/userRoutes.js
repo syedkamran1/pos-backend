@@ -10,6 +10,7 @@ const router = express.Router();
 
 // Register a new user (Admin only)
 router.post('/register', authMiddleware('admin'), async (req, res) => {
+    logger.info("*************** User Post Admin Only Route ***************") 
     const { first_name, last_name, username, password, email } = req.body;
 
     logger.info('Register API called by Admin.');
@@ -38,6 +39,7 @@ router.post('/register', authMiddleware('admin'), async (req, res) => {
 // Authenticate user and issue JWT
 
 router.post('/login', async (req, res) => {
+    logger.info("*************** User Post login Route ***************") 
     const { username, password } = req.body;
     logger.info(`Login attempt for user: ${username}`); // Log login attempt
 
