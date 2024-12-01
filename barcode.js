@@ -29,7 +29,6 @@ async function generatePrintablePDF(barcode, quantity) {
     doc.end();
     console.log(`PDF generated: ${outputFileName}`);
 }
-
 // Example usage
 generatePrintablePDF('111111111111', 8); 
   
