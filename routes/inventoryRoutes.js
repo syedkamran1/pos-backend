@@ -3,7 +3,6 @@ const logger = require('../utils/logger'); // Import the logger
 const pool = require('../config/db');
 const { Inventory, inventorySchemaInsertion, inventorySchemaDeletion, inventorySchemaUpdate, inventorySchemaBulkUpdate} = require('../models/inventory');
 const generateBarcodeText = require('../utils/generateBarcodeText')
- 
 
 const router = express.Router();
 
