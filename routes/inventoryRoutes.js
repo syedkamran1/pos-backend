@@ -8,6 +8,7 @@ const router = express.Router();
 
 // Get all inventory items
 router.get('/', async (req, res) => {
+    logger.info("*************** Inventory Get Route ***************") 
     try {
         logger.info('Going to fetch inventory data');
         const items = await Inventory.getAll();
@@ -22,6 +23,8 @@ router.get('/', async (req, res) => {
 
 // Add a new inventory item
 router.post('/', async (req, res) => {
+    logger.info("*************** Inventory Post Route ***************") 
+
     logger.info('In Add Inventory Route, going to validate schema...');
     const { error } = inventorySchemaInsertion.validate(req.body);
 
@@ -48,7 +51,8 @@ router.post('/', async (req, res) => {
 
 
 router.delete('/', async (req, res) => {
-    
+    logger.info("*************** Inventory Delete Route ***************") 
+
     logger.info(`In Delete Inventory Route, going to validate schema....`);
     const { error } = inventorySchemaDeletion.validate(req.body);
     if (error) return res.status(400).json({ error: error.details[0].message });
@@ -77,6 +81,7 @@ router.delete('/', async (req, res) => {
 });
 
 router.get('/:barcode', async (req, res) => {
+    logger.info("*************** Inventory Get by Barcode Route ***************")
     const { barcode } = req.params;
 
     logger.info(`GET /:barcode request received for barcode: ${barcode}`);
@@ -99,6 +104,7 @@ router.get('/:barcode', async (req, res) => {
 });
 
 router.put('/:barcode', async (req, res) => {
+    logger.info("*************** Inventory update by Barcode Route ***************")
     const { barcode } = req.params;
     const updatedFields = req.body;
 
@@ -138,6 +144,7 @@ router.put('/:barcode', async (req, res) => {
 
 //Bulk Update
 router.put('/', async (req, res) => {
+    logger.info("*************** Inventory Bulk update Route ***************")
     const updates = req.body;
 
     logger.info('In Bulk Update Inventory Route, validating schema...');

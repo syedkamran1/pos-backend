@@ -10,10 +10,14 @@ const router = express.Router();
 
 // Get all sales records
 router.get('/', async (req, res) => {
+    logger.info("*************** Sales Get Route ***************") 
     try {
         const sales = await Sales.getAllWithPaymentDetails(); // Updated to include payment details
         res.json({ sales });
+        logger.info("Sales Fetched.. Returning Result") 
     } catch (error) {
+    
+        log.warn("Error fetching sales.")
         res.status(500).json({ error: error.message });
     }
 });
@@ -21,6 +25,8 @@ router.get('/', async (req, res) => {
 // Process a sale
 
 router.post('/', async (req, res) => {
+
+    logger.info("*************** Sales Post Route ***************") 
     // Validate the request body
     const { error } = saleRequestSchema.validate(req.body);
     if (error) {
@@ -28,7 +34,7 @@ router.post('/', async (req, res) => {
         return res.status(400).json({ error: error.details[0].message });
     }
 
-    const { cart, paymentType, paidAmount } = req.body;
+    const { cart, paymentType, paidAmount, discount } = req.body;
 
     try {
         // Begin transaction
@@ -36,7 +42,7 @@ router.post('/', async (req, res) => {
         let total = 0;
 
         // Log cart and payment information for tracking
-        logger.info('Processing sale', { cart, paymentType, paidAmount });
+        logger.info('Processing sale', { cart, paymentType, paidAmount, discount });
 
         // Process each item in the cart
         for (const entry of cart) {
@@ -63,8 +69,12 @@ router.post('/', async (req, res) => {
         const saleBarcode = generateBarcodeText('SALE');
         logger.info('Generated sale barcode', { saleBarcode });
 
+        //logger.info('Calculating discount', { total, paidAmount });
+        //let discount = total - paidAmount;
+        //logger.info('Discount = ', { discount })
+
         // Record sale
-        const saleId = await Sales.add({ saleDate: new Date(), total, barcode: saleBarcode });
+        const saleId = await Sales.add({ saleDate: new Date(), total: paidAmount, barcode: saleBarcode, discount });
 
         // Add sale items
         for (const entry of cart) {
@@ -80,7 +90,7 @@ router.post('/', async (req, res) => {
         await pool.query('COMMIT');
         logger.info('Sale processed successfully', { saleId, total, barcode: saleBarcode });
 
-        res.status(201).json({ message: 'Sale processed successfully!', total, barcode: saleBarcode });
+        res.status(201).json({ message: 'Sale processed successfully!' , barcode: saleBarcode, total, paidAmount, discount });
     } catch (error) {
         await pool.query('ROLLBACK');
         logger.error('Error processing sale', { error: error.message });
