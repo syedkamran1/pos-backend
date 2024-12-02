@@ -88,7 +88,7 @@ router.post('/', async (req, res) => {
 
         // Commit transaction
         await pool.query('COMMIT');
-        logger.info('Sale processed successfully', { saleId, total, barcode: saleBarcode });
+        logger.info('Sale processed successfully', { saleId, total, barcode: saleBarcode, paidAmount, discount });
 
         res.status(201).json({ message: 'Sale processed successfully!' , barcode: saleBarcode, total, paidAmount, discount });
     } catch (error) {

@@ -46,7 +46,7 @@ const Inventory = {
     // Fetch all inventory items
     getAll: async () => {
         logger.info("Running SQL Query to fetch all inventory items");
-        const result = await pool.query('SELECT * FROM product');
+        const result = await pool.query('SELECT * FROM product ORDER BY ID DESC');
         logger.info("Returning all inventory items");
         return result.rows;
     },
