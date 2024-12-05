@@ -3,8 +3,10 @@ const logger = require('../utils/logger'); // Import logger
 const fs = require('fs');
 const { PDFDocument } = require('pdf-lib');
 const { print, getDefaultPrinter } = require('pdf-to-printer');
+const path = require('path');
 
-const generateBarcodeBuffer = require('../utils/generateBarcodeBuffer')
+const generateBarcodeBuffer = require('../utils/generateBarcodeBuffer');
+const { log } = require('console');
 
 const BarcodePrintSchema = Joi.object({
     barcode: Joi.string().max(50).required(),
@@ -54,6 +56,20 @@ const Barcode = {
     
             // Save the PDF and write it to a file
             const pdfBytes = await pdfDoc.save();
+
+            try {             
+                const folderPath = path.join(__dirname, "../barcodes"); // Construct the full path
+                if (!fs.existsSync(folderPath)) {
+                    fs.mkdirSync(folderPath); // Create the folder if it does not exist
+                    logger.info(`Folder barcode created successfully in the current directory.`);
+                } else {
+                    logger.info(`Folder barcode already exists in the current directory.`);
+                }
+            } catch (error) {
+                console.error(`Error creating folder '${folderName}':`, error.message);
+            }
+
+
             const pdfFileName = `barcodes/barcodes-${barcode}.pdf`;
             fs.writeFileSync(pdfFileName, pdfBytes);
     
