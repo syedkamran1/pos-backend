@@ -3,6 +3,8 @@ const inventoryRoutes = require('./routes/inventoryRoutes');
 const salesRoutes = require('./routes/salesRoutes');
 const userRoutes = require('./routes/userRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
+const barcodeRoutes = require('./routes/barcodeRoutes');
+
 const cors = require('cors')
 const path = require('path');
 //const serveStatic = require('serve-static'); // Import serve-static
@@ -29,6 +31,7 @@ app.use('/api/auth', userRoutes);
 
 app.use('/api/categories', categoryRoutes);
 
+app.use('/api/barcode', barcodeRoutes);
  
 // Fallback route to serve index.html for React Router
 app.get('*', (req, res) => {

@@ -27,6 +27,8 @@ async function createBarcodePdf(barcodeText, quantity) {
     for (let i = 0; i < quantity; i++) {
         const yPosition = height - (100 * (i + 1)); // Adjust y-position for each barcode
         const barcodeBuffer = await generateBarcode(barcodeText);
+        console.log(barcodeBuffer);
+        
         const barcodeImage = await pdfDoc.embedPng(barcodeBuffer);
         page.drawImage(barcodeImage, {
             x: 50,
@@ -61,7 +63,7 @@ async function printPdf(pdfFileName) {
 // Main function
 async function main() {
     const barcodeText = '123456789012'; // Example barcode
-    const quantity = 8; // Example quantity
+    const quantity = 20; // Example quantity
 
     // Step 1: Create and save the PDF
     const pdfFileName = await createBarcodePdf(barcodeText, quantity);
