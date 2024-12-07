@@ -6,7 +6,7 @@ const { print, getDefaultPrinter } = require('pdf-to-printer');
 const path = require('path');
 
 const generateBarcodeBuffer = require('../utils/generateBarcodeBuffer');
-const { log } = require('console');
+
 
 const BarcodePrintSchema = Joi.object({
     barcode: Joi.string().max(50).required(),

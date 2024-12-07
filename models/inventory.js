@@ -11,6 +11,7 @@ const inventorySchemaInsertion = Joi.object({
     design_no: Joi.string().max(50).optional(), // Design number as optional
     size: Joi.string().max(20).optional(),     // Size as optional
     color: Joi.string().max(30).optional(),    // Color as optional
+    category_id: Joi.number().required(),
 });
 
 const inventorySchemaDeletion = Joi.object({
@@ -25,6 +26,7 @@ const inventorySchemaUpdate = Joi.object({
     design_no: Joi.string().max(50).optional(),
     size: Joi.string().max(20).optional(),
     color: Joi.string().max(30).optional(),
+    category_id: Joi.number().optional()
 });
 
 
@@ -38,6 +40,7 @@ const inventorySchemaBulkUpdate = Joi.array().items(
         design_no: Joi.string().max(50).optional(),
         size: Joi.string().max(20).optional(),
         color: Joi.string().max(30).optional(),
+        category_id: Joi.number().optional()
     })
 );
 
@@ -46,14 +49,14 @@ const Inventory = {
     // Fetch all inventory items
     getAll: async () => {
         logger.info("Running SQL Query to fetch all inventory items");
-        const result = await pool.query('SELECT * FROM product ORDER BY ID DESC');
+        const result = await pool.query('SELECT p.*, c.name as CategoryName FROM product p INNER JOIN categories c on p.category_id = c.id  ORDER BY p.id DESC');
         logger.info("Returning all inventory items");
         return result.rows;
     },
 
     // Add a new inventory item
     add: async (item, barcode) => {
-        const { item_name, description, price, stock, design_no, size, color } = item;
+        const { item_name, description, price, stock, design_no, size, color, category_id } = item;
 
         logger.info(`Running INSERT query with the following values: 
                      item_name = ${item_name}
@@ -63,11 +66,12 @@ const Inventory = {
                      design_no = ${design_no}
                      size = ${size}
                      color = ${color}
-                     barcode = ${barcode}`);
+                     barcode = ${barcode}
+                     category_id = ${category_id}`);
 
         await pool.query(
-            'INSERT INTO product (item_name, description, price, stock, design_no, size, color, barcode) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-            [item_name, description, price, stock, design_no, size, color, barcode]
+            'INSERT INTO product (item_name, description, price, stock, design_no, size, color, barcode, category_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+            [item_name, description, price, stock, design_no, size, color, barcode, category_id]
         );
         logger.info(`INSERT query executed successfully.`);
     },
