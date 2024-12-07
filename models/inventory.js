@@ -126,6 +126,15 @@ const Inventory = {
         const result = await pool.query('DELETE FROM product WHERE barcode = $1', [barcode]);
         return result.rowCount;
     },
+
+    getByCategoryId: async (category_id) => {
+        logger.info(`Running SELECT query to fetch items by category_id: ${category_id}`);
+        const result = await pool.query(
+            'SELECT p.id, p.item_name, p.price, p.stock, p.barcode, p.design_no, p.size, p.color, p.category_id, c.name as CategoryName FROM product p INNER JOIN categories c on p.category_id = c.id WHERE p.category_id = $1 ORDER BY p.id DESC',
+            [category_id]
+        );
+        return result.rows;
+    },
 };
 
 module.exports = { Inventory, inventorySchemaInsertion, inventorySchemaDeletion, inventorySchemaUpdate, inventorySchemaBulkUpdate};

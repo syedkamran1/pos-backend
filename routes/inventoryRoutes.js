@@ -194,4 +194,27 @@ router.put('/', async (req, res) => {
 });
 
 
+router.get('/categoryid/:category_id', async (req, res) => {
+    logger.info("*************** Inventory Get by Category ID Route ***************")
+    const { category_id } = req.params;
+
+    logger.info(`GET /categoryid/:category_id request received for category_id: ${category_id}`);
+
+    try {
+        const products = await Inventory.getByCategoryId(category_id);
+        if (!products || products.length === 0) {
+            logger.warn(`No products found for category_id: ${category_id}`);
+            return res.status(404).json({ error: 'No products found for this category.' });
+        }
+
+        logger.info(`Products fetched successfully for category_id: ${category_id}`);
+        res.json({ products });
+    } catch (error) {
+        logger.error(`Error fetching products for category_id: ${category_id}`, { error: error.message });
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
+
 module.exports = router;
