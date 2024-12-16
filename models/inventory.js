@@ -4,18 +4,21 @@ const logger = require('../utils/logger'); // Import the logger
 
 // Joi schema for validation
 const inventorySchemaInsertion = Joi.object({
-    item_name: Joi.string().max(255).required(),
-    description: Joi.string().max(500).required(),
-    price: Joi.number().positive().precision(2).required(),
-    stock: Joi.number().integer().min(0).required(),
-    design_no: Joi.string().max(50).optional(), // Design number as optional
-    size: Joi.string().max(20).optional(),     // Size as optional
-    color: Joi.string().max(30).optional(),    // Color as optional
-    category_id: Joi.number().required(),
+    items: Joi.array().items(
+        Joi.object({
+            price: Joi.number().positive().precision(2).required(),
+            stock: Joi.number().integer().min(0).required(),
+            size: Joi.string().max(20).optional(),     // Size as optional
+            color: Joi.string().max(30).optional(),    // Color as optional
+            sku: Joi.string().max(255).required(),
+            productid: Joi.number().integer().min(0).required()
+        })
+    ).min(1).required() // At least one item is required
 });
 
+
 const inventorySchemaDeletion = Joi.object({
-    barcode: Joi.string().max(50).required()
+    sku: Joi.string().max(50).required()
 });
 
 const inventorySchemaUpdate = Joi.object({
@@ -49,32 +52,123 @@ const Inventory = {
     // Fetch all inventory items
     getAll: async () => {
         logger.info("Running SQL Query to fetch all inventory items");
-        const result = await pool.query('SELECT p.*, c.name as CategoryName FROM product p INNER JOIN categories c on p.category_id = c.id  ORDER BY p.id DESC');
+        const result = await pool.query(`SELECT pv.id as variantID, pv.product_id, pv.size, pv.color, 
+            pv.price, pv.sku, pv.shopify_variant_id, pv.barcode, i.id as inventoryID, i.stock, 
+            i.shopify_inventory_item_id, p.item_name, p.description, p.design_no, p.category_id, 
+            p.shopify_product_id, p.is_published_to_shopify, c.name as CategoryName
+            FROM productvariants pv
+            INNER JOIN inventory i on pv.id = i.product_variant_id
+            INNER JOIN product p on pv.product_id = p.id
+            INNER JOIN categories c on c.id = p.category_id
+`);
         logger.info("Returning all inventory items");
         return result.rows;
     },
 
-    // Add a new inventory item
-    add: async (item, barcode) => {
-        const { item_name, description, price, stock, design_no, size, color, category_id } = item;
-
-        logger.info(`Running INSERT query with the following values: 
-                     item_name = ${item_name}
-                     description = ${description}
-                     price = ${price}
-                     stock = ${stock}
-                     design_no = ${design_no}
-                     size = ${size}
-                     color = ${color}
-                     barcode = ${barcode}
-                     category_id = ${category_id}`);
-
-        await pool.query(
-            'INSERT INTO product (item_name, description, price, stock, design_no, size, color, barcode, category_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
-            [item_name, description, price, stock, design_no, size, color, barcode, category_id]
+   
+// Check if SKU exists in the productvariants table
+checkSKUExists: async (sku) => {
+    try {
+        const result = await pool.query(
+            `SELECT id FROM productvariants WHERE sku = $1`,
+            [sku]
         );
-        logger.info(`INSERT query executed successfully.`);
-    },
+        return result.rows.length > 0;
+    } catch (error) {
+        logger.error(`Error checking SKU existence for SKU = ${sku}: ${error.message}`);
+        throw error;
+    }
+},
+
+// Add or update multiple inventory items
+addOrUpdateMultiple: async (items) => {
+    logger.info(`Starting transaction to add or update multiple Product Variants and Inventory items.`);
+
+    const client = await pool.connect(); // Get a client for the transaction
+
+    try {
+        // Start transaction
+        await client.query('BEGIN');
+
+        for (const item of items) {
+            const { productid, price, stock, size, color, sku, barcode } = item;
+
+            logger.info(`Running UPSERT query for Product Variant with the following values:
+                            product_id = ${productid} 
+                            price = ${price}
+                            size = ${size}
+                            color = ${color}
+                            barcode = ${barcode || 'SKIPPING'} 
+                            sku = ${sku}`);
+            
+            // UPSERT for ProductVariants table (insert if doesn't exist, update if it exists)
+            const variantResult = await client.query(
+                `INSERT INTO productvariants 
+                    (product_id, price, size, color, sku, barcode) 
+                 VALUES ($1, $2, $3, $4, $5, $6) 
+                 ON CONFLICT (sku) 
+                 DO UPDATE SET 
+                    price = EXCLUDED.price, 
+                    size = EXCLUDED.size, 
+                    color = EXCLUDED.color 
+                 RETURNING id`,
+                [productid, price, size, color, sku, barcode] // Barcode only used for new inserts, not updates
+            );
+
+            const variantId = variantResult.rows[0].id;
+            logger.info(`Product Variant (ID = ${variantId}) added/updated successfully for SKU = ${sku}.`);
+
+            // Check if an inventory record exists for this variant
+            const inventoryResult = await client.query(
+                `SELECT id FROM inventory WHERE product_variant_id = $1`,
+                [variantId]
+            );
+
+            if (inventoryResult.rows.length > 0) {
+                // If inventory exists, update the stock
+                logger.info(`Inventory exists for Product Variant ID = ${variantId}. Running UPDATE query for stock.`);
+                
+                await client.query(
+                    `UPDATE inventory 
+                     SET stock = $1 
+                     WHERE product_variant_id = $2`,
+                    [stock, variantId]
+                );
+                
+                logger.info(`Inventory stock updated successfully for Product Variant ID = ${variantId}.`);
+            } else {
+                // If no inventory exists, insert a new record
+                logger.info(`No inventory record exists for Product Variant ID = ${variantId}. Running INSERT query.`);
+
+                await client.query(
+                    `INSERT INTO inventory 
+                        (product_variant_id, stock, reserved_stock, incoming_stock) 
+                     VALUES ($1, $2, $3, $4)`,
+                    [variantId, stock, 0, 0] // stock from the item, reserved_stock = 0, incoming_stock = 0
+                );
+
+                logger.info(`Inventory inserted successfully for Product Variant ID = ${variantId} with stock = ${stock}.`);
+            }
+        }
+
+        // Commit the transaction if all inserts/updates succeed
+        await client.query('COMMIT');
+
+        logger.info(`Transaction committed successfully for all items.`);
+    } catch (error) {
+        // Roll back the transaction in case of an error
+        await client.query('ROLLBACK');
+        logger.error(`Transaction rolled back due to error: ${error.message}`);
+        throw error;
+    } finally {
+        // Release the client back to the pool
+        client.release();
+    }
+}
+
+
+
+    ,
 
     // Update inventory
     update: async (barcode, updatedFields) => {
@@ -112,25 +206,32 @@ const Inventory = {
         return result.rows[0];
     },
 
-    getByBarcode: async (barcode) => {
-        logger.info(`Running SELECT query to fetch item by barcode: ${barcode}`);
+    getByProductID: async (productid) => {
+        logger.info(`Running SELECT query to fetch inventory by productid: ${productid}`);
         const result = await pool.query(
-            'SELECT item_name, price, stock, design_no, size, color, barcode, id FROM product WHERE barcode = $1',
-            [barcode]
+            `SELECT 
+             pv.id as variantID, pv.product_id, pv.size, pv.color, pv.price, pv.sku, pv.shopify_variant_id, 
+             pv.barcode, i.id as inventoryID , i.stock, i.shopify_inventory_item_id 
+             FROM productvariants pv 
+             INNER JOIN inventory i on pv.id = i.product_variant_id 
+             where product_id = $1`,
+            [productid]
         );
-        return result.rows[0];
+       // console.log(result.rows);
+        
+        return result.rows; 
     },
 
-    delete: async (barcode) => {
-        logger.info(`Running DELETE query to delete item by barcode: ${barcode}`);
-        const result = await pool.query('DELETE FROM product WHERE barcode = $1', [barcode]);
+    delete: async (sku) => {
+        logger.info(`Running DELETE query to delete variant by sku: ${sku}`);
+        const result = await pool.query('DELETE FROM productvariants WHERE sku = $1', [sku]);
         return result.rowCount;
     },
 
     getByCategoryId: async (category_id) => {
         logger.info(`Running SELECT query to fetch items by category_id: ${category_id}`);
         const result = await pool.query(
-            'SELECT p.id, p.item_name, p.price, p.stock, p.barcode, p.design_no, p.size, p.color, p.category_id, c.name as CategoryName FROM product p INNER JOIN categories c on p.category_id = c.id WHERE p.category_id = $1 ORDER BY p.id DESC',
+            'SELECT p.id, p.item_name, p.design_no, p.category_id, c.name as CategoryName FROM product p INNER JOIN categories c on p.category_id = c.id WHERE p.category_id = $1 ORDER BY p.id DESC',
             [category_id]
         );
         return result.rows;

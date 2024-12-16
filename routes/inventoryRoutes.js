@@ -8,7 +8,7 @@ const router = express.Router();
 
 // Get all inventory items
 router.get('/', async (req, res) => {
-    logger.info("*************** Inventory Get Route ***************") 
+    logger.info("*************** Inventory Get All Route ***************") 
     try {
         logger.info('Going to fetch inventory data');
         const items = await Inventory.getAll();
@@ -21,9 +21,9 @@ router.get('/', async (req, res) => {
     }
 });
 
-// Add a new inventory item
+// Add or Update inventory item
 router.post('/', async (req, res) => {
-    logger.info("*************** Inventory Post Route ***************") 
+    logger.info("*************** Inventory Post Route ***************");
 
     logger.info('In Add Inventory Route, going to validate schema...');
     const { error } = inventorySchemaInsertion.validate(req.body);
@@ -35,19 +35,30 @@ router.post('/', async (req, res) => {
 
     try {
         logger.info('Schema validated successfully!');
-        logger.info(`Going to generate barcode for item name: ${req.body.item_name}`);
+        
+        const items = req.body.items; // Expecting an array of items in the request
+        logger.info(`Received ${items.length} items for inventory addition or update.`);
 
-        const barcode = generateBarcodeText(req.body.item_name);
-        logger.info(`Generated barcode successfully: ${barcode}`);
+        // Check if SKU exists for each item and generate barcode only for new SKUs
+        for (const item of items) {
+            const skuExists = await Inventory.checkSKUExists(item.sku); 
+            if (skuExists) {
+                logger.info(`SKU ${item.sku} already exists, skipping barcode generation.`);
+            } else {
+                item.barcode = generateBarcodeText(item.sku);
+                logger.info(`Generated barcode successfully for SKU ${item.sku}: ${item.barcode}`);
+            }
+        }
 
-        await Inventory.add(req.body, barcode);
-        logger.info('Inventory item added successfully!');
-        res.status(201).json({ message: 'Inventory item added successfully!' });
+        await Inventory.addOrUpdateMultiple(items); // Call the new function to add or update
+        logger.info('All inventory items processed successfully (added/updated)!');
+        res.status(201).json({ message: 'All inventory items processed successfully (added/updated)!' });
     } catch (error) {
-        logger.error(`Error while adding inventory: ${error.message}`);
+        logger.error(`Error while processing inventory: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 });
+
 
 
 router.delete('/', async (req, res) => {
@@ -59,17 +70,17 @@ router.delete('/', async (req, res) => {
 
     try {
         logger.info(`Schema Validated`);
-        const rowCount = await Inventory.delete(req.body.barcode);
+        const rowCount = await Inventory.delete(req.body.sku);
         if (rowCount == 0)
            {
-            logger.info(`No product found with barcode = ` + req.body.barcode);
-            message = "No product found with barcode " + req.body.barcode;
+            logger.info(`No variant found with sku = ` + req.body.sku);
+            message = "No variant found with sku " + req.body.sku;
             return res.status(404).json({ message: message }); 
             }
         else
             {
-            logger.info(`Inventory item with barcode = ` + req.body.barcode + ` deleted successfully!`);
-            message = 'Inventory item deleted successfully!'
+            logger.info(`variant with sku = ` + req.body.sku + ` deleted successfully!`);
+            message = 'variant deleted successfully!'
             }
 
         res.status(200).json({ message: message });
@@ -80,25 +91,25 @@ router.delete('/', async (req, res) => {
 
 });
 
-router.get('/:barcode', async (req, res) => {
-    logger.info("*************** Inventory Get by Barcode Route ***************")
-    const { barcode } = req.params;
+router.get('/:productid', async (req, res) => {
+    logger.info("*************** Inventory Get by productid Route ***************")
+    const { productid } = req.params;
 
-    logger.info(`GET /:barcode request received for barcode: ${barcode}`);
+    logger.info(`GET /:productid request received for productid: ${productid}`);
 
     try {
-        const product = await Inventory.getByBarcode(barcode);
+        const product = await Inventory.getByProductID(productid);
         if (!product) {
-            logger.warn(`Product not found for barcode: ${barcode}`);
+            logger.warn(`Product not found for productid: ${productid}`);
             return res.status(404).json({ error: 'Product not found.' });
         }
        // console.log(product);
         
 
-        logger.info(`Product fetched successfully for barcode: ${barcode}`, product);
+        logger.info(`Inventory fetched successfully for productid: ${productid}`, product);
         res.json(product);
     } catch (error) {
-        logger.error(`Error fetching product for barcode: ${barcode}`, { error: error.message });
+        logger.error(`Error fetching product for productid: ${productid}`, { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
