@@ -65,9 +65,8 @@ const Inventory = {
         return result.rows;
     },
 
-   
 // Check if SKU exists in the productvariants table
-checkSKUExists: async (sku) => {
+    checkSKUExists: async (sku) => {
     try {
         const result = await pool.query(
             `SELECT id FROM productvariants WHERE sku = $1`,
@@ -81,7 +80,7 @@ checkSKUExists: async (sku) => {
 },
 
 // Add or update multiple inventory items
-addOrUpdateMultiple: async (items) => {
+    addOrUpdateMultiple: async (items) => {
     logger.info(`Starting transaction to add or update multiple Product Variants and Inventory items.`);
 
     const client = await pool.connect(); // Get a client for the transaction
@@ -165,11 +164,7 @@ addOrUpdateMultiple: async (items) => {
         client.release();
     }
 }
-
-
-
-    ,
-
+,
     // Update inventory
     update: async (barcode, updatedFields) => {
         logger.info(`Preparing to update inventory for barcode: ${barcode}`);
@@ -196,7 +191,13 @@ addOrUpdateMultiple: async (items) => {
 
     // Update inventory stock
     updateStock: async (barcode, newStock) => {
-            await pool.query('UPDATE product SET stock = $1 WHERE barcode = $2', [newStock, barcode]);
+            await pool.query(`
+                                UPDATE inventory 
+                                SET stock = $1 
+                                FROM productvariants 
+                                WHERE inventory.product_variant_id = productvariants.id 
+                                AND productvariants.barcode = $2
+                            `, [newStock, barcode]);
     },
 
     // Fetch a single inventory item by name
@@ -235,6 +236,25 @@ addOrUpdateMultiple: async (items) => {
             [category_id]
         );
         return result.rows;
+    },
+
+    // Fetch product variant and inventory stock by barcode
+    getByBarcodeWithStock: async (barcode) => {
+        logger.info(`Fetching product variant and inventory stock for barcode: ${barcode}`);
+        try {
+            const result = await pool.query(
+                `SELECT pv.id as variantID, pv.product_id, pv.size, pv.color, pv.price, pv.sku, pv.barcode, 
+                        i.id as inventoryID, i.stock 
+                 FROM productvariants pv
+                 INNER JOIN inventory i ON pv.id = i.product_variant_id
+                 WHERE pv.barcode = $1`,
+                [barcode]
+            );
+            return result.rows[0]; // Return the first matching row
+        } catch (error) {
+            logger.error(`Error fetching product variant and inventory stock for barcode ${barcode}: ${error.message}`);
+            throw error;
+        }
     },
 };
 

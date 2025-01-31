@@ -13,7 +13,7 @@ const SaleItems = {
     add: async (saleId, inventoryId, quantity, price) => {
 
         await pool.query(
-            'INSERT INTO saleitems (sale_id, product_id, quantity, price) VALUES ($1, $2, $3, $4)',
+            'INSERT INTO saleitems (sale_id, product_variant_id, quantity, price) VALUES ($1, $2, $3, $4)',
             [saleId, inventoryId, quantity, price]
         );
     },

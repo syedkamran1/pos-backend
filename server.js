@@ -9,7 +9,7 @@ const barcodeRoutes = require('./routes/barcodeRoutes');
 
 //const shopifyInventoryRoutes = require('./routes/shopifyInventoryRoutes');
 //const shopifyOrdersRoutes = require('./routes/shopifyOrdersRoutes');
-const shopifySyncRoutes = require('./routes/shopifySyncRoutes'); // Import the sync routes
+const shopifyRoutes = require('./routes/shopifyRoutes'); // Import the sync routes
 
  
 
@@ -48,7 +48,7 @@ app.use('/api/barcode', barcodeRoutes);
 
 //app.use('/api/shopify/sales', shopifyOrdersRoutes);
 
-app.use('/api/shopify', shopifySyncRoutes); // Define your sync route
+app.use('/api/shopify', shopifyRoutes); // Define your sync route
 
 
  
