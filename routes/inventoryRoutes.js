@@ -110,9 +110,34 @@ router.get('/:productid', async (req, res) => {
         res.json(product);
     } catch (error) {
         logger.error(`Error fetching product for productid: ${productid}`, { error: error.message });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: error.message }); 
     }
 });
+
+
+router.get('/GetPrice/:Barcode', async (req, res) => {
+    logger.info("*************** Inventory Get by Barcode Route ***************")
+    const { Barcode } = req.params;
+
+    logger.info(`GET /:Barcode request received for Barcode: ${Barcode}`);
+
+    try {
+        const product = await Inventory.getByBarcode(Barcode);
+        if (!product) {
+            logger.warn(`Product not found for Barcode: ${Barcode}`);
+            return res.status(404).json({ error: 'Product not found.' });
+        }
+       // console.log(product);
+        
+
+        logger.info(`Inventory fetched successfully for Barcode: ${Barcode}`, product);
+        res.json(product);
+    } catch (error) {
+        logger.error(`Error fetching product for Barcode: ${Barcode}`, { error: error.message });
+        res.status(500).json({ error: error.message }); 
+    }
+});
+
 
 router.put('/:barcode', async (req, res) => {
     logger.info("*************** Inventory update by Barcode Route ***************")

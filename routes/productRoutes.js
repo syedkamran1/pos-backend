@@ -123,13 +123,13 @@ router.put('/', async (req, res) => {
 
     // Validate the request body using Joi
     const { error } = inventorySchemaBulkUpdate.validate(updates);
-    if (error) {
+    if (error) { 
         logger.error(`Validation failed for bulk update: ${error.message}`);
         return res.status(400).json({ error: error.details[0].message });
     }
 
     try {
-        logger.info('Schema validated successfully. Proceeding with bulk update...');
+        logger.info('Schema validated successfully. Proceeding with bulk update...'); 
 
         // Begin transaction
         await pool.query('BEGIN');

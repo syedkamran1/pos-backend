@@ -223,6 +223,24 @@ const Inventory = {
         return result.rows; 
     },
 
+    
+    getByBarcode: async (Barcode) => {
+        logger.info(`Running SELECT query to fetch inventory by Barcode: ${Barcode}`);
+        const result = await pool.query(
+            `SELECT 
+             pv.id as variantID, pv.product_id, pv.size, pv.color, pv.price, pv.sku,
+             pv.barcode, i.id as inventoryID , i.stock, p.item_name 
+             FROM productvariants pv 
+             INNER JOIN inventory i on pv.id = i.product_variant_id
+			 INNER JOIN product p on pv.product_id = p.id
+             where barcode = $1`,
+            [Barcode]
+        );
+       // console.log(result.rows);
+        
+        return result.rows; 
+    },
+
     delete: async (sku) => {
         logger.info(`Running DELETE query to delete variant by sku: ${sku}`);
         const result = await pool.query('DELETE FROM productvariants WHERE sku = $1', [sku]);
