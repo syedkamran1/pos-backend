@@ -18,38 +18,35 @@ const Barcode = {
     createBarcodePdf: async (barcode, quantity) => {
         try {
             logger.info(`Starting PDF creation for barcode: ${barcode}, quantity: ${quantity}`);
+
+// Create a new PDF document
+const pdfDoc = await PDFDocument.create();
+logger.info('PDF document created successfully.');
+
+// Add barcodes to the document, each on a separate page
+for (let i = 0; i < quantity; i++) {
+    // Add a new page for each barcode
+    const page = pdfDoc.addPage([300, 100]); // Fixed height for each page
+    const { height } = page.getSize();
+    logger.info(`Page ${i + 1} added to PDF with height ${height}`);
+
+    // Generate the barcode buffer
+    const barcodeBuffer = await generateBarcodeBuffer(barcode);
     
-            // Create a new PDF document
-            const pdfDoc = await PDFDocument.create();
-            logger.info('PDF document created successfully.');
-    
-            // Add a page to the document with dynamic height based on quantity
-            const page = pdfDoc.addPage([300, 100 * quantity]);
-            const { height } = page.getSize();
-            logger.info(`Page added to PDF with height ${height}`);
-    
-            // Add barcodes to the page
-            for (let i = 0; i < quantity; i++) {
-                const yPosition = height - (100 * (i + 1)); // Adjust y-position for each barcode
-                //logger.info(`Placing barcode image at yPosition: ${yPosition}`);
-                
-                const barcodeBuffer = await generateBarcodeBuffer(barcode)
-                // Embed barcode image (assumes `barcode` is a PNG buffer or valid input)
-                const barcodeImage = await pdfDoc.embedPng(barcodeBuffer);
-                //logger.info(`Barcode image embedded for instance ${i + 1}`);
-    
-                // Draw barcode on the page
-                page.drawImage(barcodeImage, {
-                    x: 50,
-                    y: yPosition,
-                    width: 200,
-                    height: 80,
-                });
-                // Log progress: every 10 or last iteration
-                if ((i + 1) % Math.min(100, Math.ceil(quantity / 10)) === 0 || i === quantity - 1) {
-                    logger.info(`Processed ${i + 1} of ${quantity} barcodes`);
-                }
-            }
+    // Embed the barcode image
+    const barcodeImage = await pdfDoc.embedPng(barcodeBuffer);
+    logger.info(`Barcode image embedded for instance ${i + 1}`);
+
+    // Draw the barcode on the page
+    page.drawImage(barcodeImage, {
+        x: 50,
+        y: height - 80, // Adjust y-position to place the barcode near the top
+        width: 200,
+        height: 80,
+    });
+}
+
+logger.info('PDF creation completed.');
 
             logger.info(`Successfully embedded ${quantity} barcodes into PDF.`);
 
