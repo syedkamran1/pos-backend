@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NSwicm9sZV9pZCI6MSwiaWF0IjoxNzMzMzQ0ODk2LCJleHAiOjE3MzMzNDg0OTZ9.hqGTs8xCgORbM8LPzZytQlEGnrGNCEse5-Dznj2g_aY"
+token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NSwicm9sZV9pZCI6MSwiaWF0IjoxNzM4OTQ2NTEyLCJleHAiOjE3Mzg5NTAxMTJ9.8rI33PWc653meGzs8AsMq7HVfWU9A-cammZWgIH_0pg"
 // Decode without verifying the signature
 const decoded = jwt.decode(token);
 console.log('Decoded Token:', decoded);
