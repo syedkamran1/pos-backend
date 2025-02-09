@@ -3,7 +3,7 @@ function generateBarcodeText(itemName) {
     const nameHash = itemName
         .toUpperCase()
         .replace(/[^A-Z0-9]/g, '') // Remove special characters
-        .slice(0, 5); // Take the first 2 characters
+        .slice(0, 5); // Take the first 5 characters
 
     // 2. Get current timestamp in milliseconds (13-digit number)
     const timestamp = Date.now().toString().slice(-8); // Take last 8 digits for brevity

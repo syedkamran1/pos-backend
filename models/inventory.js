@@ -109,7 +109,8 @@ const Inventory = {
                  DO UPDATE SET 
                     price = EXCLUDED.price, 
                     size = EXCLUDED.size, 
-                    color = EXCLUDED.color 
+                    color = EXCLUDED.color,
+                    product_id = EXCLUDED.product_id 
                  RETURNING id`,
                 [productid, price, size, color, sku, barcode] // Barcode only used for new inserts, not updates
             );
