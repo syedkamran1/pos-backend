@@ -14,6 +14,7 @@ const saleRequestSchema = Joi.object({
             Joi.object({
                 barcode: Joi.string().required(),
                 quantity: Joi.number().integer().min(1).required(),
+                item_discount: Joi.number().min(0).required()
             })
         )
         .min(1)

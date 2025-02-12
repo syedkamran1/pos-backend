@@ -10,11 +10,12 @@ const saleItemSchema = Joi.object({
 
 const SaleItems = {
     // Add items to SaleItems table
-    add: async (saleId, inventoryId, quantity, price) => {
+    add: async (saleId, inventoryId, quantity, price, item_discount) => {
+        //console.log(saleId, inventoryId, quantity, price, item_discount);
 
         await pool.query(
-            'INSERT INTO saleitems (sale_id, product_variant_id, quantity, price) VALUES ($1, $2, $3, $4)',
-            [saleId, inventoryId, quantity, price]
+            'INSERT INTO saleitems (sale_id, product_variant_id, quantity, price, item_discount) VALUES ($1, $2, $3, $4, $5)',
+            [saleId, inventoryId, quantity, price, item_discount]
         );
     },
 };

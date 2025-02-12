@@ -44,8 +44,8 @@ router.post("/", async (req, res) => {
 
     // Process each item in the cart
     for (const entry of cart) {
-      const { barcode, quantity } = entry;
-      logger.info("Processing item", { barcode, quantity });
+      const { barcode, quantity, item_discount } = entry;
+      logger.info("Processing item", { barcode, quantity, item_discount });
 
       // Fetch product variant and inventory stock using barcode
       const inventoryItem = await Inventory.getByBarcodeWithStock(barcode);
@@ -111,12 +111,13 @@ router.post("/", async (req, res) => {
     // Add sale items
     for (const entry of cart) {
       const inventoryItem = await Inventory.getByBarcodeWithStock(entry.barcode);
-      console.log(inventoryItem);
+      //console.log(inventoryItem);
       await SaleItems.add(
         saleId,
         inventoryItem.variantid,
         entry.quantity,
-        inventoryItem.price * entry.quantity
+        inventoryItem.price * entry.quantity,
+        entry.item_discount
       );
     }
 
