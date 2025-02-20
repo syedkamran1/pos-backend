@@ -1,6 +1,6 @@
 const bcrypt = require('bcrypt');
 
-const password = 'password124';  // Password you want to hash
+const password = 'password123';  // Password you want to hash
 const saltRounds = 10;  // The cost factor for hashing
 
 bcrypt.hash(password, saltRounds, (err, hash) => {
