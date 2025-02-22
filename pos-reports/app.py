@@ -115,7 +115,7 @@ def calculate_sales_stats(sales_summary_df, col_name):
         # else:
         #     'here'
         #     percentage_change = ((float(todays_sales[1:]) - float(yesterdays_sales[1:])) / float(yesterdays_sales[1:])) * 100
-    return todays_sales, percentage_change
+    return todays_sales, round(percentage_change, 2)
 
 
 # Main function
