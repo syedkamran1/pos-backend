@@ -28,7 +28,9 @@ router.post('/' , upload.array('image', 3), async (req, res) => {
     logger.info("*************** Inventory Post Route ***************");
 
     logger.info('In Add Inventory Route, going to validate schema...');
-    const { error } = inventorySchemaInsertion.validate(req.body);
+    const items = JSON.parse(req.body.items);
+    //console.log(items);   
+    const { error } = inventorySchemaInsertion.validate({items});
 
     if (error) {
         logger.error(`Validation failed for adding inventory: ${error.message}`);
@@ -38,8 +40,9 @@ router.post('/' , upload.array('image', 3), async (req, res) => {
     try {
         logger.info('Schema validated successfully!');
         
-        const items = req.body.items; // Expecting an array of items in the request
+        //const items = req.body.items; // Expecting an array of items in the request
         const files = req.files; // Access uploaded files
+        //console.log(req.files)
 
         logger.info(`Received ${items.length} items for inventory addition or update.`);
         logger.info(`Received ${files.length} image files.`);
