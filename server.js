@@ -10,7 +10,6 @@ const barcodeRoutes = require('./routes/barcodeRoutes');
 //const shopifyInventoryRoutes = require('./routes/shopifyInventoryRoutes');
 //const shopifyOrdersRoutes = require('./routes/shopifyOrdersRoutes');
 const shopifyRoutes = require('./routes/shopifyRoutes'); // Import the sync routes
-
  
 
 const cors = require('cors')
@@ -26,9 +25,7 @@ app.use(cors());
 
 // Serve Vite's production files
 app.use(express.static(path.join(__dirname, 'dist')));
-
-// Serve static files from the "dist" folder
-//app.use(serveStatic(path.join(__dirname, 'dist'), { index: false }));
+app.use('/images', express.static(path.join(__dirname, 'images'))); // Serve image files
 
 // Routes
 app.use('/api/inventory', inventoryRoutes);
@@ -63,7 +60,7 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
     
-});
+});  
 
 
 

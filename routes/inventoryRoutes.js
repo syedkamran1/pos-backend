@@ -3,6 +3,8 @@ const logger = require('../utils/logger'); // Import the logger
 const pool = require('../config/db');
 const { Inventory, inventorySchemaInsertion, inventorySchemaDeletion, inventorySchemaUpdate, inventorySchemaBulkUpdate} = require('../models/inventory');
 const generateBarcodeText = require('../utils/generateBarcodeText')
+const upload = require('../middleware/multer');
+const getLocalIp = require('../utils/getLocalIp');
 
 const router = express.Router();
 
@@ -22,7 +24,7 @@ router.get('/', async (req, res) => {
 });
 
 // Add or Update inventory item
-router.post('/', async (req, res) => {
+router.post('/' , upload.array('image', 3), async (req, res) => {
     logger.info("*************** Inventory Post Route ***************");
 
     logger.info('In Add Inventory Route, going to validate schema...');
@@ -37,9 +39,13 @@ router.post('/', async (req, res) => {
         logger.info('Schema validated successfully!');
         
         const items = req.body.items; // Expecting an array of items in the request
+        const files = req.files; // Access uploaded files
+
         logger.info(`Received ${items.length} items for inventory addition or update.`);
+        logger.info(`Received ${files.length} image files.`);
 
         // Check if SKU exists for each item and generate barcode only for new SKUs
+        var file_index = 0;
         for (const item of items) {
             const skuExists = await Inventory.checkSKUExists(item.sku); 
             if (skuExists) {
@@ -48,7 +54,26 @@ router.post('/', async (req, res) => {
                 item.barcode = generateBarcodeText(item.sku);
                 logger.info(`Generated barcode successfully for SKU ${item.sku}: ${item.barcode}`);
             }
+             // Associate uploaded images with the item
+        if (files.length > 0 & file_index < files.length) {
+            // Check if there are any images uploaded
+            logger.info(`Image for SKU ${item.sku}: (${files[file_index].originalname})`);
+            const sanitizedFileName = files[file_index].originalname.replace(/\s+/g, '%20');
+            imageURL = 'http://' + getLocalIp() + ':5000/images/' + sanitizedFileName;
+            logger.info(`Constructed URL for SKU ${item.sku}: (${imageURL})`);
+            item.imageURL = imageURL
+            //console.log(`Image for SKU ${item.sku} ${files[file_index].originalname}`);
+            //console.log(item);
+           // console.log(getLocalIp());
+            
         }
+        
+        file_index++;
+       
+    
+        }
+
+       
 
         await Inventory.addOrUpdateMultiple(items); // Call the new function to add or update
         logger.info('All inventory items processed successfully (added/updated)!');
@@ -123,7 +148,8 @@ router.get('/GetPrice/:Barcode', async (req, res) => {
 
     try {
         const product = await Inventory.getByBarcode(Barcode);
-        if (!product) {
+        //console.log(product.length);
+        if (!product || product.length == 0) {
             logger.warn(`Product not found for Barcode: ${Barcode}`);
             return res.status(404).json({ error: 'Product not found.' });
         }

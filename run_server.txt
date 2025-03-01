@@ -1,0 +1,26 @@
+@echo off
+REM Step 1: Run Node.js application with npm start in a new window
+echo Starting Node.js application...
+start "Node.js App" cmd /c "cd /d C:\pos-backend && npm start"
+
+REM Wait for a few seconds to ensure the Node.js app starts
+timeout /t 5 >nul
+
+REM Step 2: Navigate to the pos-reports folder
+echo Changing directory to pos-reports...
+cd /d C:\pos-backend\pos-reports
+if %errorlevel% neq 0 (
+    echo Failed to navigate to pos-reports folder.
+    exit /b %errorlevel%
+)
+
+REM Step 3: Run Streamlit app
+echo Starting Streamlit app...
+streamlit run app.py
+if %errorlevel% neq 0 (
+    echo Failed to start Streamlit app.
+    exit /b %errorlevel%
+)
+
+echo Both applications started successfully.
+pause

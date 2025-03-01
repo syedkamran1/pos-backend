@@ -11,7 +11,8 @@ const inventorySchemaInsertion = Joi.object({
             size: Joi.string().max(20).optional(),     // Size as optional
             color: Joi.string().max(30).optional(),    // Color as optional
             sku: Joi.string().max(255).required(),
-            productid: Joi.number().integer().min(0).required()
+            productid: Joi.number().integer().min(0).required(),
+            image: Joi.string().uri().optional()    // Optional field for image URL
         })
     ).min(1).required() // At least one item is required
 });
@@ -53,7 +54,7 @@ const Inventory = {
     getAll: async () => {
         logger.info("Running SQL Query to fetch all inventory items");
         const result = await pool.query(`SELECT pv.id as variantID, pv.product_id, pv.size, pv.color, 
-            pv.price, pv.sku, pv.shopify_variant_id, pv.barcode, i.id as inventoryID, i.stock, 
+            pv.price, pv.sku, pv.shopify_variant_id, pv.barcode, pv.image_url, i.id as inventoryID, i.stock, 
             i.shopify_inventory_item_id, p.item_name, p.description, p.design_no, p.category_id, 
             p.shopify_product_id, p.is_published_to_shopify, c.name as CategoryName
             FROM productvariants pv
@@ -90,7 +91,8 @@ const Inventory = {
         await client.query('BEGIN');
 
         for (const item of items) {
-            const { productid, price, stock, size, color, sku, barcode } = item;
+            const { productid, price, stock, size, color, sku, barcode, imageURL  } = item;
+           
 
             logger.info(`Running UPSERT query for Product Variant with the following values:
                             product_id = ${productid} 
@@ -98,21 +100,23 @@ const Inventory = {
                             size = ${size}
                             color = ${color}
                             barcode = ${barcode || 'SKIPPING'} 
-                            sku = ${sku}`);
+                            sku = ${sku}
+                            image = ${imageURL || 'SKIPPING'}`);
             
             // UPSERT for ProductVariants table (insert if doesn't exist, update if it exists)
             const variantResult = await client.query(
                 `INSERT INTO productvariants 
-                    (product_id, price, size, color, sku, barcode) 
-                 VALUES ($1, $2, $3, $4, $5, $6) 
+                    (product_id, price, size, color, sku, barcode, image_url) 
+                 VALUES ($1, $2, $3, $4, $5, $6, $7) 
                  ON CONFLICT (sku) 
                  DO UPDATE SET 
                     price = EXCLUDED.price, 
                     size = EXCLUDED.size, 
                     color = EXCLUDED.color,
-                    product_id = EXCLUDED.product_id 
+                    product_id = EXCLUDED.product_id, 
+                    image_url = EXCLUDED.image_url
                  RETURNING id`,
-                [productid, price, size, color, sku, barcode] // Barcode only used for new inserts, not updates
+                [productid, price, size, color, sku, barcode, imageURL] // Barcode only used for new inserts, not updates
             );
 
             const variantId = variantResult.rows[0].id;
@@ -230,7 +234,7 @@ const Inventory = {
         const result = await pool.query(
             `SELECT 
              pv.id as variantID, pv.product_id, pv.size, pv.color, pv.price, pv.sku,
-             pv.barcode, i.id as inventoryID , i.stock, p.item_name 
+             pv.barcode, pv.image_url, i.id as inventoryID , i.stock, p.item_name 
              FROM productvariants pv 
              INNER JOIN inventory i on pv.id = i.product_variant_id
 			 INNER JOIN product p on pv.product_id = p.id
