@@ -53,8 +53,10 @@ def load_xlsx_to_postgres(xlsx_file_path, engine):
     print(f"Adding {len(df_categories)} new categories to the database.")
     output_dir = os.path.join(os.path.dirname(xlsx_file_path), 'output')
     os.makedirs(output_dir, exist_ok=True)
-    df_categories.to_excel(os.path.join(output_dir, 'categories.xlsx'), index=False)
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    df_categories.to_excel(os.path.join(output_dir, f'categories_{timestamp}.xlsx'), index=False)
     df_categories.to_sql('categories', engine, if_exists='append', index=False)
+    existing_category_names = pd.read_sql_table('categories', engine)
 
 
 
@@ -79,9 +81,12 @@ def load_xlsx_to_postgres(xlsx_file_path, engine):
     df_product.rename(columns = {'Product Name':'item_name', 'Product Description':'description', 'Design No':'design_no'}, inplace=True)
     #print(df_product)
     print(f"Adding {len(df_product)} new products to the database.")
-    df_product.to_excel(os.path.join(output_dir, 'products.xlsx'), index=False)
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    df_product.to_excel(os.path.join(output_dir, f'products_{timestamp}.xlsx'), index=False)
     df_product.to_sql('product', engine, if_exists='append', index=False)
+    existing_product_names = pd.read_sql_table('product', engine)
     
+
     print("\n")
     print("**********" * 10)
     print("Working on Variants")
@@ -89,17 +94,22 @@ def load_xlsx_to_postgres(xlsx_file_path, engine):
     existing_variant_names = pd.read_sql_table('productvariants', engine)
     #print(existing_variant_names)
 
-    df_variant = df[['Product Name', 'Size', 'Colour', 'Price', 'SKU']].dropna()
+    df_variant = df[['Image','Product Name', 'Size', 'Colour', 'Price', 'SKU']].dropna()
+    #print(df_variant)
+    df_variant['Image'] = df_variant['Image'].apply(lambda x: f"http://192.168.0.75:5000/images/{x.split('/')[-1].replace(' ', '%20')}")
+    #print(df_variant['Image'])
     df_variant = df_variant[~df_variant['SKU'].isin(existing_variant_names['sku'])]
-    df_variant.drop_duplicates(inplace=True)
+    #df_variant.drop_duplicates(inplace=True)
     df_variant['barcode'] = df_variant['SKU'].apply(lambda x:generate_barcode_text(x))
     df_variant['product_id'] = df_variant['Product Name'].apply(lambda x: existing_product_names[existing_product_names['item_name'] == x]['id'].values[0])
-    df_variant.rename(columns = {'Size':'size', 'Colour':'color', 'Price':'price', 'SKU':'sku'}, inplace=True)
+    df_variant.rename(columns = {'Image': 'image_url', 'Size':'size', 'Colour':'color', 'Price':'price', 'SKU':'sku'}, inplace=True)
     df_variant.drop(columns=['Product Name'], inplace=True)
     #print(df_variant)
     print(f"Adding {len(df_variant)} new variants to the database.")
-    df_variant.to_excel(os.path.join(output_dir, 'variants.xlsx'), index=False)
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    df_variant.to_excel(os.path.join(output_dir, f'variants_{timestamp}.xlsx'), index=False)
     df_variant.to_sql('productvariants', engine, if_exists='append', index=False)
+    existing_variant_names = pd.read_sql_table('productvariants', engine)
 
     print("\n")
     print("**********" * 10)
@@ -109,6 +119,10 @@ def load_xlsx_to_postgres(xlsx_file_path, engine):
     #print(existing_inventory_names)
     df_inventory = df[['SKU', 'Stock']].dropna()
     #print(df_inventory)
+    
+    #print(existing_variant_names[existing_variant_names['sku'] == 'CAS-FRONT-SHOP-101'])
+    #print(df_inventory['SKU'])
+
     df_inventory['product_variant_id'] = df_inventory['SKU'].apply(lambda x: existing_variant_names[existing_variant_names['sku'] == x]['id'].values[0])
     #print(df_inventory)
     df_inventory = df_inventory[~df_inventory['product_variant_id'].isin(existing_inventory_names['product_variant_id'])]
@@ -118,8 +132,11 @@ def load_xlsx_to_postgres(xlsx_file_path, engine):
     df_inventory.drop(columns=['SKU'], inplace=True)
     #print(df_inventory)
     print(f"Adding {len(df_inventory)} new inventory to the database.")
-    df_inventory.to_excel(os.path.join(output_dir, 'inventory.xlsx'), index=False)
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    df_inventory.to_excel(os.path.join(output_dir, f'inventory_{timestamp}.xlsx'), index=False)
+    
     df_inventory.to_sql('inventory', engine, if_exists='append', index=False)
+    existing_inventory_names = pd.read_sql_table('inventory', engine)
 
 
 
